@@ -14,7 +14,7 @@
  *
  *  Jesus Carro <jcarro@usj.es> 
  *  Joel Castro <jcastro@usj.es>
- *  version: Natrium - 16 March 2016
+ *  version: Natrium v2 - 14 July 2016
  \************************************************************************/
 #ifndef CONFIG_H_
 #define CONFIG_H_
@@ -24,8 +24,8 @@ struct CONFIG {
 	double final_time; //ms
 	double dt; //ms
 	int outputFreq;
-	long initPost;
-	long lastIteration;
+	long double initPost;
+	long double lastIteration;
 
 	int numConstantsToChange;
 	int numStatesToPrint;

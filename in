@@ -20,7 +20,7 @@
 ]>
 <simulation>
 	<model>
-	<name>Carro_Rodriguez_Laguna_Pueyo_2011_EPI_opt</name>
+	<name>CRLP2011_EPI</name>
 	<endtime>10000</endtime>
 	<diferentialtime>0.002</diferentialtime>
 	<markerv>
