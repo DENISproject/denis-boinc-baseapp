@@ -74,9 +74,10 @@ std::vector<std::string> string_split(const std::string &s, char delim) {
 	return elems;
 }
 
-int do_checkpoint(int rat_length, int alg_length, long double it, const int buffSize,
+int do_checkpoint(int rat_length, int alg_length, unsigned long long it, const int buffSize,
 		double* STATES, double* ALGEBRAIC) {
-	string resolved_name;
+	//string temp_filename = "temp";
+	boinc_begin_critical_section();
 	char chkpt_path[buffSize];
 
 	int rc = boinc_resolve_filename(CHECKPOINT_FILE, chkpt_path, buffSize);
@@ -86,16 +87,16 @@ int do_checkpoint(int rat_length, int alg_length, long double it, const int buff
 		boinc_finish(rc);
 	}
 
-	FILE* state = boinc_fopen(chkpt_path, "w");
+	/*FILE* state = boinc_fopen(temp_filename.c_str(), "w");
 	if (!state) {
 		it = 0;
 		return 0;
-	}
+	}*/
 
 	fstream checkpointFile(chkpt_path, ios::out | ios::binary | ios::trunc);
 
-	checkpointFile.write(reinterpret_cast<const char *>(&it), sizeof(long double));
-	fprintf(stderr, "\nDoing CP It:%Lf", it);
+	checkpointFile.write(reinterpret_cast<const char *>(&it), sizeof(unsigned long long));
+	fprintf(stderr, "\nDoing CP It:%llu", it);
 
 	for (int stateIterator = 0; stateIterator < rat_length; stateIterator++) {
 		checkpointFile.write(reinterpret_cast<char *>(&STATES[stateIterator]),
@@ -108,15 +109,17 @@ int do_checkpoint(int rat_length, int alg_length, long double it, const int buff
 	}
 
 	checkpointFile.close();
+	boinc_end_critical_section();
 	return 0;
+
 }
 
-long double loadDataFromCheckPoint( int rat_length, int alg_length,
+unsigned long long loadDataFromCheckPoint( int rat_length, int alg_length,
 		const int buffSize, double* STATES, double* ALGEBRAIC) {
 	char chkpt_path[buffSize];
 	std::string line;
 
-	long double it = 0;
+	unsigned long long it = 0;
 
 	int rc = boinc_resolve_filename(CHECKPOINT_FILE, chkpt_path, buffSize);
 	if (rc) {
@@ -127,6 +130,7 @@ long double loadDataFromCheckPoint( int rat_length, int alg_length,
 
 	FILE* state = boinc_fopen(chkpt_path, "r");
 	if (!state || appData.wu_cpu_time == 0) {
+		fprintf(stderr, "Checkpoint file not found\n");
 		return it;
 	} else {
 		fclose(state);
@@ -135,8 +139,8 @@ long double loadDataFromCheckPoint( int rat_length, int alg_length,
 	fstream checkpointFile(chkpt_path, ios::in | ios::binary);
 
 	try {
-		checkpointFile.read(reinterpret_cast<char *>(&it), sizeof(long double));
-		fprintf(stderr, "LoadFromCP: it = %Lf", it);
+		checkpointFile.read(reinterpret_cast<char *>(&it), sizeof(unsigned long long));
+		fprintf(stderr, "LoadFromCP: it = %llu", it);
 		for (int stateIterator = 0; stateIterator < rat_length;
 				stateIterator++) {
 			checkpointFile.read(
@@ -265,8 +269,8 @@ CONFIG loadConfiguration(char input_path[], const char** constants,
 							"model")->FirstChildElement("markerv")->FirstChildElement(
 							"component")->GetText(), states, rat_len);
 
-	long double initPost = (long double) (round(initial_time / dt));
-	long double lastIteration = (long double) (round(final_time / dt));
+	unsigned long long initPost = (unsigned long long) (round(initial_time / dt));
+	unsigned long long lastIteration = (unsigned long long) (round(final_time / dt));
 
 	int numConstantsToChange = 0;
 	if (doc.FirstChildElement("simulation")->FirstChildElement(
@@ -385,11 +389,11 @@ void solveModel(int rat_length, int alg_length, double* CONSTANTS,
 	double initial_time = config.initial_time;
 	double dt = config.dt;
 	int retval;
-	long double it = 0;
+	unsigned long long it = 0;
 	int modelID = config.modelID;
 	int outputFreq = config.outputFreq;
-	long double initPost = config.initPost;
-	long double lastIteration = config.lastIteration;
+	unsigned long long initPost = config.initPost;
+	unsigned long long lastIteration = config.lastIteration;
 	int numConstantsToChange = config.numConstantsToChange;
 	int numStatesToPrint = config.numStatesToPrint;
 	int * statesToPrint = config.statesToPrint;
@@ -416,64 +420,79 @@ void solveModel(int rat_length, int alg_length, double* CONSTANTS,
 		PRINTABLE_ALG[algToPrint[simpleIterator]] = true;
 	}
 
-	saveStates = new double[(int) ((((lastIteration - initPost) / outputFreq)
-			+ 1) * (numStatesToPrint + numAlgToPrint + 1))];
+	int iterationsToSave = (int)(((lastIteration - initPost) / outputFreq)+ 1);
+	saveStates = new double[ iterationsToSave * (numStatesToPrint + numAlgToPrint + 1)];
 
-	vState = new double[(int) (((lastIteration - initPost) / outputFreq) + 1)];
-	t = new double[(int) (((lastIteration - initPost) / outputFreq) + 1)];
-	long double VOI = initial_time;
+	vState = new double[iterationsToSave];
+	t = new double[iterationsToSave];
+	unsigned long long VOI = initial_time;
 
-	//If it exists a checkpoint, load data from it
 	it = loadDataFromCheckPoint( rat_length, alg_length, buffSize, STATES,
 			ALGEBRAIC);
 	int saveIterator = 0;
 	int vIterator = 0;
 
-	long double last = 1.0 / double(lastIteration);
+	double last = 1.0 / double(lastIteration);
 
-	for (; it <= lastIteration; it++) {
+	try{
+		for (; it <= lastIteration; it++) {
 
-		if (fmod(it,0x80000) == 0) {
-			long double frac = double(it) * last;
-			boinc_fraction_done(frac);
-		}
-
-		VOI = dt * it; //Integration variable, in this case, time
-
-		computeRates(modelID, VOI, CONSTANTS, RATES, STATES, ALGEBRAIC);
-
-		if (fmod(it, outputFreq) == 0 && it >= initPost) {
-			saveStates[saveIterator++] = VOI;
-			vState[vIterator] = STATES[vIndex];
-			t[vIterator++] = VOI;
-		}
-
-		for (int i = 0; i < rat_length; i++) {
-
-			if (PRINTABLE_STATES[i] && fmod(it, outputFreq) == 0 && it >= initPost) {
-				saveStates[saveIterator++] = STATES[i];
+			if (fmod(it,0x80000) == 0) {
+				double frac = double(it) * last;
+				boinc_fraction_done(frac);
 			}
-			STATES[i] += (RATES[i] * dt);
 
-		}
+			VOI = dt * it; //Integration variable, in this case, time
 
-		for (int j = 0; j < alg_length; j++) {
-			if (PRINTABLE_ALG[j] && fmod(it,outputFreq) == 0 && it >= initPost) {
-				saveStates[saveIterator++] = ALGEBRAIC[j];
+			computeRates(modelID, VOI, CONSTANTS, RATES, STATES, ALGEBRAIC);
+
+			if (fmod(it, outputFreq) == 0 && it >= initPost) {
+				saveStates[saveIterator++] = VOI;
+				vState[vIterator] = STATES[vIndex];
+				t[vIterator++] = VOI;
 			}
-		}
 
-		if (boinc_time_to_checkpoint()) {
-			retval = do_checkpoint(rat_length, alg_length, it, buffSize, STATES,
-					ALGEBRAIC);
-			if (retval) {
-				fprintf(stderr,
-						"DENIS: checkpoint failed at Iteration %d , retval%d\n",
-						(int) it, retval);
-				exit(1);
+			for (int i = 0; i < rat_length; i++) {
+
+				if (PRINTABLE_STATES[i] && fmod(it, outputFreq) == 0 && it >= initPost) {
+					saveStates[saveIterator++] = STATES[i];
+				}
+				STATES[i] += (RATES[i] * dt);
+
 			}
-			boinc_checkpoint_completed();
+
+			for (int j = 0; j < alg_length; j++) {
+				if (PRINTABLE_ALG[j] && fmod(it,outputFreq) == 0 && it >= initPost) {
+					saveStates[saveIterator++] = ALGEBRAIC[j];
+				}
+			}
+
+			if (boinc_time_to_checkpoint()) {
+				retval = do_checkpoint(rat_length, alg_length, it, buffSize, STATES,
+						ALGEBRAIC);
+				if (retval) {
+					fprintf(stderr,
+							"DENIS: checkpoint failed at Iteration %d , retval%d\n",
+							(int) it, retval);
+					exit(1);
+				}
+				boinc_checkpoint_completed();
+			}
+
 		}
+	}
+	catch (std::exception & e){
+		fprintf(stderr,"\n\n----------------- Error in solve model ---------------\n");
+		fprintf(stderr,"Last iteration: %lli\n",lastIteration);
+		fprintf(stderr,"Iteration: %lli\n",it);
+		fprintf(stderr,"Iterations to save: %i\n",iterationsToSave);
+		fprintf(stderr,"V_iterator: %i\n",vIterator);
+		fprintf(stderr,"Number of values in saveStates: %i\n",
+						iterationsToSave * (numStatesToPrint + numAlgToPrint + 1));
+		fprintf(stderr,"Save_iterator: %i\n",saveIterator);
+
+		fprintf(stderr,"Exception: %s\n",e.what());
+		exit(-1);
 
 	}
 
@@ -582,10 +601,7 @@ void saveMarkers(char markers_path[], double* t, double* V, CONFIG config) {
 
 	fprintf(f,"ID\tAPD90\tAPD75\tAPD50\tAPD25\tAPD10\tAPD_time\tMaxV\tMinV\tMaxDiffV\tMinDiffV\n");
 	int id = 1;
-	if (EmptyList(markerList)){
-		fprintf(f, "");
-	}
-	else {
+	if (!EmptyList(markerList)){
 		while (markerList != NULL) {
 			fprintf(f, "%i", id);
 			fprintf(f, "\t%+1.8e", markerList->apd90);

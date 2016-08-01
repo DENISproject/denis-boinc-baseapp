@@ -32,9 +32,7 @@ typedef struct marker {
 	double maxDiff;
 	double minDiff;
 	struct marker * next;
-};
-
-typedef marker *List;
+} *List;
 
 int EmptyList(List &l){
 	if (l == NULL) {

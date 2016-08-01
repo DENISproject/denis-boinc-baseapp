@@ -24,8 +24,8 @@ struct CONFIG {
 	double final_time; //ms
 	double dt; //ms
 	int outputFreq;
-	long double initPost;
-	long double lastIteration;
+	unsigned long long initPost;
+	unsigned long long lastIteration;
 
 	int numConstantsToChange;
 	int numStatesToPrint;

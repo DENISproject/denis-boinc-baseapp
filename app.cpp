@@ -33,6 +33,9 @@ int main() {
 	int alg_length, rat_length, cons_length = 0;
 	getVectorsLength (modelID,&alg_length, &rat_length, &cons_length);
 
+	fprintf(stderr,"LENGTH: ALG : %d ,RAT:  %d ,CONS: %d\n",
+							alg_length, rat_length,cons_length);
+
 	double *CONSTANTS = new double[cons_length];
 	double *RATES = new double[rat_length];
 	double *STATES = new double[rat_length];
