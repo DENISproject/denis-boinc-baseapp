@@ -52,6 +52,7 @@ namespace ten_tusscher_model_2006_IK1Ko_endo_units{
 	double* getNewRatesArray(){return new double[STATE_LENGTH];}
 	double* getNewStatesArray(){return new double[STATE_LENGTH];}
 	double* getNewAlgebraicArray(){return new double[ALGEBRAIC_LENGTH];}
+
 	
 	void getNewArrays(double **constants, double **rates, double **states, double **algebraic){
 		*constants = getNewConstantsArray();

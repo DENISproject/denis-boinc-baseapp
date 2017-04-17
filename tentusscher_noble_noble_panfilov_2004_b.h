@@ -52,6 +52,7 @@ namespace tentusscher_noble_noble_panfilov_2004_b{
 	double* getNewRatesArray(){return new double[STATE_LENGTH];}
 	double* getNewStatesArray(){return new double[STATE_LENGTH];}
 	double* getNewAlgebraicArray(){return new double[ALGEBRAIC_LENGTH];}
+
 	
 	void getNewArrays(double **constants, double **rates, double **states, double **algebraic){
 		*constants = getNewConstantsArray();

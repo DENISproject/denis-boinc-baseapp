@@ -75,6 +75,7 @@ std::vector<std::string> string_split(const std::string &s, char delim) {
 	return elems;
 }
 
+
 int do_checkpoint(int rat_length, int alg_length, unsigned long long it,
 		const int buffSize, double* STATES, double* ALGEBRAIC, int saveIterator, int vIterator,int sSsize,
 		int vSsize, double* saveStates, double* vState, double* t) {
