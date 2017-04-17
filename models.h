@@ -47,7 +47,6 @@
 #include "grandi_pasqualini_bers_2010_ss.h"
 #include "ten_tusscher_model_2006_IK1Ko_endo_units.h"
 #include "shannon_wang_puglisi_weber_bers_2004_a.h"
-#include "CNM_ENDO.h"
 #include "courtemanche_ramirez_nattel_1998.h"
 #include "tentusscher_noble_noble_panfilov_2004_c.h"
 #include "ten_tusscher_model_2006_IK1Ko_M_units.h"
@@ -62,7 +61,6 @@
 #define grandi_pasqualini_bers_2010_ss_ID 4
 #define ten_tusscher_model_2006_IK1Ko_endo_units_ID 5
 #define shannon_wang_puglisi_weber_bers_2004_a_ID 6
-#define CNM_ENDO_ID 7
 #define courtemanche_ramirez_nattel_1998_ID 8
 #define tentusscher_noble_noble_panfilov_2004_c_ID 9
 #define ten_tusscher_model_2006_IK1Ko_M_units_ID 10
